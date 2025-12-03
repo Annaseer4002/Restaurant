@@ -362,13 +362,38 @@ const updateOrderStatus = async (req, res)=> {
              })
         }
 
+        // check if status is not cancelled
+        if(order.status === 'cancelled'){
+            return res.status(400).json({
+                status: 'fail',
+                message: 'Cannot update status of a cancelled order'
+            })
+        }
+
      // update the status
-     const updateOrderStatus = await Order.findByIdAndUpdate(id,{status}, {new: true})
+     order.status = status
+     await order.save()
+    //  const updateOrderStatus = await Order.findByIdAndUpdate(id,{status}, {new: true})
+
+
+     // find user details to send email
+     const user = await User.findById(order.userId)
+
+     // send email notification to user about order status update
+     await sendMail({
+        to: user.email,
+        subject: 'Order Status Updated',
+        html: `<p>Dear ${user.fullname},</p>
+        <p>Your order with order ID <strong>${order._id}</strong> status has been updated to <strong>${order.status.toUpperCase()}</strong>.</p>
+        <p>Thank you for ordering with us!</p>`,
+        text: `Dear ${user.fullname},\n\nYour order with order ID ${order._id} status has been updated to ${order.status}.
+        \n\nThank you for ordering with us!\n`
+    })
 
      res.status(200).json({
         status: 'success',
         message: 'Order status updated successfully',
-        date: updateOrderStatus
+        data: order
      })
 
 
@@ -413,7 +438,7 @@ const cancelOrder = async (req, res) => {
         }
 
         // check if order status is pending or accepted
-        if(order.status === 'pending'){
+        if(order.status === "pending" || order.status === "accepted"){
             return res.status(400).json({
                 status: 'fail',
                 message: `Cannot cancel order with status ${order.status}`
@@ -422,6 +447,22 @@ const cancelOrder = async (req, res) => {
 
         // update order status to cancelled
         const cancelledOrder = await Order.findByIdAndUpdate(id, { status: 'cancelled'}, { new: true})
+
+        
+        
+        // find user details to send email
+        const user = await User.findById(req.user.id)
+        
+        // send cancellation email
+        await sendMail({
+            to: req.user.email,
+            subject: 'Order Cancelled',
+            html: `<p>Dear ${user.fullname},</p>
+            <p>Your order with order ID <strong>${order._id}</strong> has been cancelled successfully.</p>
+            <p>We hope to serve you again in the future!</p>`,
+            text: `Dear ${user.fullname},\n\nYour order with order ID ${order._id} has been cancelled successfully.
+            \n\nWe hope to serve you again in the future!\n`
+        })
 
         res.status(200).json({
             status: 'success',
@@ -473,6 +514,50 @@ const deleteOrder = async (req, res) => {
     }
 }
 
+
+const trackOrder = async (req, res) => {
+    const { id} = req.params
+    if(!req.user){
+        return res.status(403).json({
+            status: 'fail',
+            message: 'Unauthorized. Please log in to track order'
+        })
+    }
+
+    try {
+        // find order by id
+        const order = await Order.findById(id)
+
+        if(!order){
+            return res.status(404).json({
+                status: 'fail',
+                message: 'Order not found'
+            })
+        }
+
+        // check if the order belongs to the user
+        if(order.userId.toString() !== req.user.id || req.user.role !== 'admin'){
+            return res.status(403).json({
+                status: 'fail',
+                message: 'Access Denied, cannot track order'
+            })
+        }
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Order status fetched successfully',
+            data: { status: order.status } 
+        })
+    
+    }catch (error) {
+        return res.status(500).json({
+            status: 'error',
+            message: 'Internal server error',
+            error: error.message
+        })
+    }
+}
+
 const orderController = {
     placeOrder,
     getOrders,
@@ -481,6 +566,7 @@ const orderController = {
     restaurantOrders,
     updateOrderStatus,
     cancelOrder,
+    trackOrder,
     deleteOrder
 }
 

@@ -12,7 +12,8 @@ router.get('/myOrders', Authorize, orderController.myOrder)
 router.get('/restaurantOrders/:id', Authorize, orderController.restaurantOrders)
 router.patch('/updateOrderStatus/:id', Authorize, orderController.updateOrderStatus)
 router.patch('/cancelOrder/:id', Authorize, orderController.cancelOrder)
+router.get('/orderStatus/:id', Authorize, orderController.trackOrder)
 router.delete('/deleteOrder/:id', Authorize, orderController.deleteOrder)
-
+ 
 
 export default router;
