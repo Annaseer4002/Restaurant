@@ -163,6 +163,8 @@ const forgotPassword = async (req, res) => {
             })
         }
 
+
+        // find user by email
         const user = await User.findOne({ email })
 
         if(!user){
@@ -172,6 +174,8 @@ const forgotPassword = async (req, res) => {
             })
         }
 
+
+        // send mail to user with reset password link
         await sendMail({
             to: email,
             subject: 'Reset Password Notification',
@@ -201,6 +205,7 @@ const resetPassword = async (req, res) => {
         
     const { password } = req.body
 
+    // get user email from auth middleware
     const email = req.user.email
 
     if(!password)
@@ -209,6 +214,7 @@ const resetPassword = async (req, res) => {
          message: 'password is required' 
     })
 
+    // find user by email
     const user = await User.findOne({email})
 
     if(!user){
@@ -217,12 +223,22 @@ const resetPassword = async (req, res) => {
             message: 'User account does not exist'
         })
     }
-    
+
+    // 
     const hashedPassword = await bcrypt.hash(password, 10)
 
+    // update user password
     user.password = hashedPassword
 
     await user.save()
+
+    // send mail notification
+    await sendMail({
+        to: user.email,
+        subject: 'Password Reset Successful',
+        text: `Dear ${user.fullname}, your password has been successfully reset.`,
+        html: `<p>Dear ${user.fullname},</p><p>Your password has been successfully reset.</p><p>If you did not initiate this change, please contact our support team immediately.</p>`
+    })
 
     res.status(200).json({
         status: 'success',

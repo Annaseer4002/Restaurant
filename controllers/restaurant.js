@@ -51,14 +51,17 @@ const createRestaurant = async (req, res) => {
       menus
     });
 
+
+    // save restaurant
     await restaurant.save();
 
-    // await sendMail({
-    //   to: email,
-    //   subject: 'Restaurant Creation',
-    //   html: ``,
-    //   text:
-    // })
+   // send mail notification to owner
+   await sendMail({
+    to: req.user.email,
+    subject: 'Restaurant Created',
+    text: `Dear ${req.user.fullname}, your restaurant "${restaurant.restaurantName}" has been successfully created.`,
+    html: `<p>Dear ${req.user.fullname},</p><p>Your restaurant "<strong>${restaurant.restaurantName}</strong>" has been successfully created.</p><p>Thank you for using our service!</p>`
+   })
 
     return res.status(201).json({
       status: "success",
@@ -119,7 +122,7 @@ const getRestaurantById = async (req, res) => {
       })
      }
 
-
+     // find restaurant by id and populate menus
      const restaurant = await Restaurant.findById(id).populate('menus')
 
      if(!restaurant){
@@ -199,6 +202,14 @@ const updateRestaurant = async (req, res) => {
      // save the changes
      await restaurant.save()
 
+     // send mail notification to owner
+     await sendMail({
+      to: req.user.email,
+      subject: 'Restaurant Updated',
+      text: `Dear ${req.user.fullname}, your restaurant "${restaurant.restaurantName}" has been successfully updated.`,
+      html: `<p>Dear ${req.user.fullname},</p><p>Your restaurant "<strong>${restaurant.restaurantName}</strong>" has been successfully updated.</p><p>Thank you for using our service!</p>`
+     })
+
      // response
 res.status(200).json({ 
   status: 'success',
@@ -245,6 +256,14 @@ const deleteRestaurant = async (req, res) => {
 
     // delete restaurant
     const deleteRestaurant = await Restaurant.findByIdAndDelete(id)
+
+    // send mail notification to owner
+    await sendMail({
+      to: req.user.email,
+      subject: 'Restaurant Deleted',
+      text: `Dear ${req.user.fullname}, your restaurant "${restaurant.restaurantName}" has been successfully deleted.`,
+      html: `<p>Dear ${req.user.fullname},</p><p>Your restaurant "<strong>${restaurant.restaurantName}</strong>" has been successfully deleted.</p><p>Thank you for using our service!</p>`
+    })
 
     res.status(200).json({
       status: 'success',

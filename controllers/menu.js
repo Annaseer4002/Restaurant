@@ -45,8 +45,18 @@ const menu = async (req, res)=>{
 
     await menu.save()
 
+
+    // add menu to restaurant menus array
     await Restaurant.findByIdAndUpdate(restaurantId, {
         $push: { menus: menu._id }
+    })
+
+    // send mail notification to restaurant owner
+    await sendMail({
+        to: req.user.email,
+        subject: 'New Menu Added',
+        text: `Dear ${req.user.fullname}, your new menu item "${menu.name}" has been successfully added to your restaurant "${restaurant.name}".`,
+        html: `<p>Dear ${req.user.fullname},</p><p>Your new menu item "<strong>${menu.name}</strong>" has been successfully added to your restaurant "<strong>${restaurant.name}</strong>".</p><p>Thank you for using our service!</p>`
     })
 
     res.status(201).json({
@@ -111,6 +121,14 @@ const updateMenu = async (req, res) => {
 
     await menu.save()
 
+    // send mail notification to restaurant owner
+    await sendMail({
+        to: req.user.email,
+        subject: 'Menu Updated',
+        text: `Dear ${req.user.fullname}, your menu item "${menu.name}" has been successfully updated in your restaurant "${restaurant.name}".`,
+        html: `<p>Dear ${req.user.fullname},</p><p>Your menu item "<strong>${menu.name}</strong>" has been successfully updated in your restaurant "<strong>${restaurant.name}</strong>".</p><p>Thank you for using our service!</p>`
+    })
+
     res.status(200).json({
         status: 'success',
         message: 'Menu updated successfully',
@@ -163,6 +181,15 @@ const deleteMenu = async (req, res) => {
 
      // delete menu
     const deletedMenu = await Menu.findByIdAndDelete(id)
+
+
+    // send mail notification to restaurant owner
+    await sendMail({
+        to: req.user.email,
+        subject: 'Menu Deleted',
+        text: `Dear ${req.user.fullname}, your menu item "${menu.name}" has been successfully deleted from your restaurant "${restaurant.name}".`,
+        html: `<p>Dear ${req.user.fullname},</p><p>Your menu item "<strong>${menu.name}</strong>" has been successfully deleted from your restaurant "<strong>${restaurant.name}</strong>".</p><p>Thank you for using our service!</p>`
+    })
 
     res.status(200).json({
       status: 'success',

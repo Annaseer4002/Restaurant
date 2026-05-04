@@ -370,6 +370,14 @@ const updateOrderStatus = async (req, res)=> {
             })
         }
 
+        // check is payment status is completed before performing certain status updates
+        if(order.paymentStatus !== 'paid'){
+            return res.status(400).json({
+                status: 'fail',
+                message: 'Cannot update order status before payment is completed'
+            })
+        }
+
      // update the status
      order.status = status
      await order.save()
@@ -493,12 +501,24 @@ const deleteOrder = async (req, res) => {
     try {
         // find order by id and delete
         const order = await Order.findByIdAndDelete(id)
-        if(!order){
-            return res.status(404).json({
-                status: 'fail',
-                message: 'Order not found'
-            })
-        }
+        // if(!order){
+        //     return res.status(404).json({
+        //         status: 'fail',
+        //         message: 'Order not found'
+        //     })
+        // }
+
+        //  send mail notification to user about order deletion
+        const user = await User.findById(order.userId)
+        await sendMail({
+            to: user.email,
+            subject: 'Order Deleted',
+            html: `<p>Dear ${user.fullname},</p>
+            <p>Your order with order ID <strong>${order._id}</strong> has been deleted by the admin.</p>
+            <p>If you have any questions, please contact our support team.</p>`,
+            text: `Dear ${user.fullname},\n\nYour order with order ID ${order._id} has been deleted by the admin.
+            \n\nIf you have any questions, please contact our support team.\n`
+        })
 
         res.status(200).json({
             status: 'success',
